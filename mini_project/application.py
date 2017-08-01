@@ -113,8 +113,6 @@ def main(filepath, filter_percentile_min=0.05, filter_percentile_max=0.95, test_
     data = data[( data['Distance_mile'] > min_quantile['Distance_mile'] ) &
                 ( data['Distance_mile'] < max_quantile['Distance_mile'] ) ] 
     
-    #data = data[(numpy.abs(stats.zscore(data)) < 3).all(axis=1)]
-    
     #generate exploratory plots
     generate_exploratory_plots(data, img_id='after filtering top and bottom 5pct')
     
