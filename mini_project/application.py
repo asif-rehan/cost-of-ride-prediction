@@ -15,6 +15,7 @@ from scipy.stats import mstats
 
 
 
+
 def read_data(filepath):
     data = pandas.read_csv(filepath)
     return data
@@ -59,44 +60,46 @@ def generate_exploratory_plots(data, img_id=0):
         plt.ylabel(y)
         img_title = y + ' Vs ' + x
         plt.title(img_title)
-        img_filename = os.path.join('./../output/{}_{}.png'.format(img_title, img_id))
         
+        img_filename = os.path.join('./../output/{}_{}.png'.format(img_title, img_id))
         if os.path.isfile(img_filename):
             os.remove(img_filename)
-        plt.savefig(img_filename)    
+        plt.savefig(img_filename)  
+        plt.close()  
 
 
-def show_diagnostics(X_test, Y_test, regr_model, Y_hat):
+def show_diagnostics(Y_test, regr_model, Y_hat):
     #show model params ouputs
     print 'Coefficients: \n', regr_model.coef_
         
-    # The mean squared error
-    print "Mean absolute error: %.2f" % metrics.mean_absolute_error(Y_test, Y_hat)
-    print "Mean squared error: %.2f" % metrics.mean_squared_error(Y_test, Y_hat)
+    # performance metrics
     print "R-squared value: %.2f" % metrics.r2_score(Y_test, Y_hat)
-    #print "Median absolute error: %.2f" % metrics.median_absolute_error(Y_test, Y_hat)
+    print "Mean absolute error (MAE) : $%.2f" % metrics.mean_absolute_error(Y_test, Y_hat)
+    print "Mean squared error (MSE): $%.2f" % metrics.mean_squared_error(Y_test, Y_hat) 
+    print "Root mean squared error (RMSE): $%.2f" % numpy.sqrt(metrics.mean_squared_error(Y_test, Y_hat))
+    print "Mean absolute percentage error (MAPE): %.2f" % (numpy.mean(numpy.abs((Y_test - Y_hat) / Y_test))*100), "%"
+    
     
 
-def plot_model_outputs(X_test, Y_test, Y_hat):
+def plot_model_outputs(Y_test, Y_hat):
+    plt.close()
     plt.scatter(Y_test, Y_hat, color='black')
     plt.xlabel('Y_test')
     plt.ylabel('Y_hat')
     img_title = 'Y_hat Vs Y_test'
     plt.title(img_title)
-    plt.xticks(())
-    plt.yticks(())
-    plt.savefig(os.path.join('./../output/output_{}.png'.format(img_title)))
+    plt.savefig(os.path.join(current_dir, os.pardir, 'output/output_{}.png'.format(img_title)))
     
-    #plt.scatter(X_test['PayingPax'], X_test['Distance_mile'], Y_hat, color='blue', linewidth=3)
+    plt.close()
 
-def main(filepath, data_filter_percentile=[0.05, 0.05], test_size=0.3):
+def main(filepath, filter_percentile_min=0.05, filter_percentile_max=0.95, test_size=0.3):
     '''
     steps:
     =====
     1. read data
     2. create a function to get Manhattan distance for a given row ID (starting from 0)
     3. compile the distance for each user to use it a x1 variable, the other x2 variable is the #of passenger
-    4. construct the regression model by using randomly selected 70% of the total data
+    4. construct the regression model by using randomly selected 70% of the total data (use seed to replicate later)
     5. predict the model by pluggin in the remaining 30% of the data
     6. evaluate the model performance by using RMSE, MAE, MAPE values since this is a regression problem
     '''
@@ -110,8 +113,8 @@ def main(filepath, data_filter_percentile=[0.05, 0.05], test_size=0.3):
     generate_exploratory_plots(data, img_id='raw')
     
     #identify and remove bad data
-    min_quantile = data.quantile(0.05)
-    max_quantile = data.quantile(0.95)
+    min_quantile = data.quantile(filter_percentile_min)
+    max_quantile = data.quantile(filter_percentile_max)
     data = data[( data['Distance_mile'] > min_quantile['Distance_mile'] ) &
                 ( data['Distance_mile'] < max_quantile['Distance_mile'] ) ] 
     
@@ -133,13 +136,14 @@ def main(filepath, data_filter_percentile=[0.05, 0.05], test_size=0.3):
     Y_hat = regr_model.predict(X_test)
     
     #show model performance metrics
-    show_diagnostics(X_test, Y_test, regr_model, Y_hat)
+    show_diagnostics(Y_test, regr_model, Y_hat)
     
     # Plot outputs
-    plot_model_outputs(X_test, Y_test, Y_hat)
+    plot_model_outputs(Y_test, Y_hat)
     
     return None
 
 if __name__ == '__main__':
-    data_filepath = os.path.join('./../data/example_problem.csv')
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    data_filepath = os.path.join(current_dir, os.pardir, 'data/example_problem.csv')
     main(data_filepath)
