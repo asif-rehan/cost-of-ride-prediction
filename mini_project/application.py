@@ -58,8 +58,8 @@ def generate_exploratory_plots(data, img_id=0):
         plt.scatter(data[x], data[y])
         plt.xlabel(x)
         plt.ylabel(y)
-        img_title = y + ' Vs ' + x
-        plt.title(img_title)
+        img_title = y + ' Vs ' + x 
+        plt.title(img_title + '\n' + img_id)
         
         img_filename = os.path.join('./../output/{}_{}.png'.format(img_title, img_id))
         if os.path.isfile(img_filename):
