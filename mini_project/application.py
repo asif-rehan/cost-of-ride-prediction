@@ -7,12 +7,13 @@ import pandas
 import numpy 
 import os
 import random
-from sklearn import linear_model, metrics, preprocessing
+from sklearn import linear_model, metrics
+from sklearn import model_selection
 from matplotlib import pyplot as plt
 from scipy import stats
+from scipy.stats import mstats
 
 
-random.seed(20170801)   #to ensure same set of data is picked for training and testing
 
 def read_data(filepath):
     data = pandas.read_csv(filepath)
@@ -52,28 +53,17 @@ def get_manhattan_distance(data_row):
     return  total_manhattan_distance
     
 def generate_exploratory_plots(data, img_id=0):
-    plt.scatter(data['PayingPax'], data['Distance_mile'])
-    plt.xlabel('PayingPax')
-    plt.ylabel('Distance_mile')
-    img_title = 'Distance_mile Vs PayingPax'
-    plt.title(img_title)
-    plt.savefig(os.path.join('./../output/{}_{}.png'.format(img_title, img_id)))
-    
-    plt.scatter(data['PayingPax'], data['Fare'])
-    plt.xlabel('PayingPax')
-    plt.ylabel('Fare')
-    img_title = 'Fare Vs PayingPax'
-    plt.title(img_title)
-    plt.savefig(os.path.join('./../output/{}_{}.png'.format(img_title, img_id)))
+    for x, y in [('PayingPax', 'Distance_mile'), ('PayingPax', 'Fare'), ('Distance_mile', 'Fare')]:
+        plt.scatter(data[x], data[y])
+        plt.xlabel(x)
+        plt.ylabel(y)
+        img_title = y + ' Vs ' + x
+        plt.title(img_title)
+        img_filename = os.path.join('./../output/{}_{}.png'.format(img_title, img_id))
         
-    plt.scatter(data['Distance_mile'], data['Fare'])
-    plt.xlabel('Distance_miles')
-    plt.ylabel('Fare')
-    img_title = 'Fare Vs Distance_mile'
-    plt.title(img_title)
-    plt.title(img_title)
-    plt.savefig(os.path.join('./../output/{}_{}.png'.format(img_title, img_id)))
-    
+        if os.path.isfile(img_filename):
+            os.remove(img_filename)
+        plt.savefig(img_filename)    
 
 
 def show_diagnostics(X_test, Y_test, regr_model, Y_hat):
@@ -99,7 +89,7 @@ def plot_model_outputs(X_test, Y_test, Y_hat):
     
     #plt.scatter(X_test['PayingPax'], X_test['Distance_mile'], Y_hat, color='blue', linewidth=3)
 
-def main(filepath, data_filter_percentile=[0.05, 0.05], training_size=70):
+def main(filepath, data_filter_percentile=[0.05, 0.05], test_size=0.3):
     '''
     steps:
     =====
@@ -115,34 +105,28 @@ def main(filepath, data_filter_percentile=[0.05, 0.05], training_size=70):
     #apply manhattan distance function and add as a new column to the data frame
     data['Distance_mile'] = data.apply(lambda x: get_manhattan_distance(x), axis=1)
     
-    #select the relevant columns from the data
-    data = data[['PayingPax', 'Distance_mile', 'Fare']]
     
     #generate exploratory plots
     generate_exploratory_plots(data, img_id='raw')
     
     #identify and remove bad data
-    data = data[(numpy.abs(stats.zscore(data)) < 3).all(axis=1)]
+    min_quantile = data.quantile(0.05)
+    max_quantile = data.quantile(0.95)
+    data = data[( data['Distance_mile'] > min_quantile['Distance_mile'] ) &
+                ( data['Distance_mile'] < max_quantile['Distance_mile'] ) ] 
+    
+    #data = data[(numpy.abs(stats.zscore(data)) < 3).all(axis=1)]
     
     #generate exploratory plots
     generate_exploratory_plots(data, img_id='after filtering top and bottom 5pct')
     
     #split the given data into training and testing dataset
-    training_set_index = random.sample(data.index.tolist(), int(training_size/100.0*data.shape[0]))
-    train_data = data[data.index.isin(training_set_index)]
-    test_data = data[~data.index.isin(training_set_index)]
-    
-    
-    #split into X-train
-    X_train = train_data[['PayingPax', 'Distance_mile']]
-    Y_train = train_data['Fare']
-    
-    #split into X-test
-    X_test = test_data[['PayingPax', 'Distance_mile']]
-    Y_test = test_data['Fare']
+    X = data[['PayingPax', 'Distance_mile']]
+    Y = data['Fare']
+    X_train, X_test, Y_train, Y_test = model_selection.train_test_split(X, Y, test_size=test_size, random_state=123)
     
     #build regression model
-    regr_model = linear_model.LinearRegression()
+    regr_model = linear_model.LinearRegression(normalize=True)
     regr_model.fit(X_train, Y_train)
     
     #predict on test data set
