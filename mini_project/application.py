@@ -7,9 +7,12 @@ import pandas
 import numpy 
 import os
 import random
-from sklearn import linear_model
+from sklearn import linear_model, metrics, preprocessing
 from matplotlib import pyplot as plt
+from scipy import stats
 
+
+random.seed(20170801)   #to ensure same set of data is picked for training and testing
 
 def read_data(filepath):
     data = pandas.read_csv(filepath)
@@ -48,10 +51,55 @@ def get_manhattan_distance(data_row):
     
     return  total_manhattan_distance
     
-def generate_exploratory_plots(data):
-    return None
+def generate_exploratory_plots(data, img_id=0):
+    plt.scatter(data['PayingPax'], data['Distance_mile'])
+    plt.xlabel('PayingPax')
+    plt.ylabel('Distance_mile')
+    img_title = 'Distance_mile Vs PayingPax'
+    plt.title(img_title)
+    plt.savefig(os.path.join('./../output/{}_{}.png'.format(img_title, img_id)))
+    
+    plt.scatter(data['PayingPax'], data['Fare'])
+    plt.xlabel('PayingPax')
+    plt.ylabel('Fare')
+    img_title = 'Fare Vs PayingPax'
+    plt.title(img_title)
+    plt.savefig(os.path.join('./../output/{}_{}.png'.format(img_title, img_id)))
+        
+    plt.scatter(data['Distance_mile'], data['Fare'])
+    plt.xlabel('Distance_miles')
+    plt.ylabel('Fare')
+    img_title = 'Fare Vs Distance_mile'
+    plt.title(img_title)
+    plt.title(img_title)
+    plt.savefig(os.path.join('./../output/{}_{}.png'.format(img_title, img_id)))
+    
 
-def main(filepath, training_size=70):
+
+def show_diagnostics(X_test, Y_test, regr_model, Y_hat):
+    #show model params ouputs
+    print 'Coefficients: \n', regr_model.coef_
+        
+    # The mean squared error
+    print "Mean absolute error: %.2f" % metrics.mean_absolute_error(Y_test, Y_hat)
+    print "Mean squared error: %.2f" % metrics.mean_squared_error(Y_test, Y_hat)
+    print "R-squared value: %.2f" % metrics.r2_score(Y_test, Y_hat)
+    #print "Median absolute error: %.2f" % metrics.median_absolute_error(Y_test, Y_hat)
+    
+
+def plot_model_outputs(X_test, Y_test, Y_hat):
+    plt.scatter(Y_test, Y_hat, color='black')
+    plt.xlabel('Y_test')
+    plt.ylabel('Y_hat')
+    img_title = 'Y_hat Vs Y_test'
+    plt.title(img_title)
+    plt.xticks(())
+    plt.yticks(())
+    plt.savefig(os.path.join('./../output/output_{}.png'.format(img_title)))
+    
+    #plt.scatter(X_test['PayingPax'], X_test['Distance_mile'], Y_hat, color='blue', linewidth=3)
+
+def main(filepath, data_filter_percentile=[0.05, 0.05], training_size=70):
     '''
     steps:
     =====
@@ -65,44 +113,49 @@ def main(filepath, training_size=70):
     data = read_data(filepath)
     
     #apply manhattan distance function and add as a new column to the data frame
-    data['distance_mile'] = data.apply(lambda x: get_manhattan_distance(x), axis=1)
-    generate_exploratory_plots(data)
+    data['Distance_mile'] = data.apply(lambda x: get_manhattan_distance(x), axis=1)
+    
+    #select the relevant columns from the data
+    data = data[['PayingPax', 'Distance_mile', 'Fare']]
+    
+    #generate exploratory plots
+    generate_exploratory_plots(data, img_id='raw')
+    
+    #identify and remove bad data
+    data = data[(numpy.abs(stats.zscore(data)) < 3).all(axis=1)]
+    
+    #generate exploratory plots
+    generate_exploratory_plots(data, img_id='after filtering top and bottom 5pct')
     
     #split the given data into training and testing dataset
     training_set_index = random.sample(data.index.tolist(), int(training_size/100.0*data.shape[0]))
     train_data = data[data.index.isin(training_set_index)]
     test_data = data[~data.index.isin(training_set_index)]
     
+    
     #split into X-train
-    X_train = train_data[['PayingPax', 'distance_mile']]
+    X_train = train_data[['PayingPax', 'Distance_mile']]
     Y_train = train_data['Fare']
     
     #split into X-test
-    X_test = test_data[['PayingPax', 'distance_mile']]
+    X_test = test_data[['PayingPax', 'Distance_mile']]
     Y_test = test_data['Fare']
     
     #build regression model
     regr_model = linear_model.LinearRegression()
     regr_model.fit(X_train, Y_train)
     
+    #predict on test data set
     Y_hat = regr_model.predict(X_test)
-    print 'Coefficients: \n', regr_model.coef_
     
-    # The mean squared error
-    print "Mean squared error: %.2f" % numpy.mean(Y_hat - Y_test) ** 2
-    # Explained variance score: 1 is perfect prediction
-    print('Variance score: %.2f' % regr_model.score(X_test, Y_test))
+    #show model performance metrics
+    show_diagnostics(X_test, Y_test, regr_model, Y_hat)
     
     # Plot outputs
-    plt.scatter(X_test, Y_test,  color='black')
-    plt.plot(X_test, Y_hat, color='blue', linewidth=3)
+    plot_model_outputs(X_test, Y_test, Y_hat)
     
-    plt.xticks(())
-    plt.yticks(())
-    
-    plt.show()
-    
-    return X_train
+    return None
 
 if __name__ == '__main__':
-    main(os.path.join('./../data/example_problem.csv'))
+    data_filepath = os.path.join('./../data/example_problem.csv')
+    main(data_filepath)
