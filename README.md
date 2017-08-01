@@ -10,6 +10,7 @@ Coefficients
 Final Model
 ----------- 
 Y = 15.95 * X1 + 0.66 * X2
+
 i.e. Fare = 15.95 * PayingPax + 0.66 * Distance_mile
 
 Performance metrics

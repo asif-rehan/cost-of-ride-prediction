@@ -102,7 +102,7 @@ def main(filepath, filter_percentile_min=0.05, filter_percentile_max=0.95, test_
     
     #apply manhattan distance function and add as a new column to the data frame
     data['Distance_mile'] = data.apply(lambda x: get_manhattan_distance(x), axis=1)
-    
+    data.to_csv(os.path.join(CURRENT_DIR, os.pardir, 'data/appended_distance_data.csv'))
     
     #generate exploratory plots
     generate_exploratory_plots(data, img_id='raw')
