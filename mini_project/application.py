@@ -6,15 +6,11 @@ Created on Jul 31, 2017
 import pandas
 import numpy 
 import os
-import random
 from sklearn import linear_model, metrics
 from sklearn import model_selection
 from matplotlib import pyplot as plt
-from scipy import stats
-from scipy.stats import mstats
 
-
-
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def read_data(filepath):
     data = pandas.read_csv(filepath)
@@ -61,7 +57,7 @@ def generate_exploratory_plots(data, img_id=0):
         img_title = y + ' Vs ' + x 
         plt.title(img_title + '\n' + img_id)
         
-        img_filename = os.path.join('./../output/{}_{}.png'.format(img_title, img_id))
+        img_filename = os.path.join(CURRENT_DIR, os.pardir, 'output/{}_{}.png'.format(img_title, img_id))
         if os.path.isfile(img_filename):
             os.remove(img_filename)
         plt.savefig(img_filename)  
@@ -80,7 +76,6 @@ def show_diagnostics(Y_test, regr_model, Y_hat):
     print "Mean absolute percentage error (MAPE): %.2f" % (numpy.mean(numpy.abs((Y_test - Y_hat) / Y_test))*100), "%"
     
     
-
 def plot_model_outputs(Y_test, Y_hat):
     plt.close()
     plt.scatter(Y_test, Y_hat, color='black')
@@ -88,7 +83,7 @@ def plot_model_outputs(Y_test, Y_hat):
     plt.ylabel('Y_hat')
     img_title = 'Y_hat Vs Y_test'
     plt.title(img_title)
-    plt.savefig(os.path.join(current_dir, os.pardir, 'output/output_{}.png'.format(img_title)))
+    plt.savefig(os.path.join(CURRENT_DIR, os.pardir, 'output/output_{}.png'.format(img_title)))
     
     plt.close()
 
@@ -144,6 +139,5 @@ def main(filepath, filter_percentile_min=0.05, filter_percentile_max=0.95, test_
     return None
 
 if __name__ == '__main__':
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    data_filepath = os.path.join(current_dir, os.pardir, 'data/example_problem.csv')
+    data_filepath = os.path.join(CURRENT_DIR, os.pardir, 'data/example_problem.csv')
     main(data_filepath)
